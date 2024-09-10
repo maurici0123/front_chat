@@ -1,15 +1,46 @@
-import React, {useRef} from 'react'
+import './JoinStyle.css'
+import React, { useRef, useEffect } from 'react'
 import io from 'socket.io-client'
 
 export default function Join(props) {
 
+    useEffect(() => {
+        let userId = localStorage.getItem('userId') 
+        let username = localStorage.getItem('username') 
+
+        if (userId && username) {
+            
+            const socket = io.connect('http://localhost:3001', {
+                query: { userId } // Passa o userId na query ao conectar ao servidor
+            })
+
+            socket.emit('set_username', localStorage.getItem('username'))
+            props.setSocket(socket)
+            props.setChatVisibility(true)
+
+            socket.emit('set_username', username)
+        }
+
+        if (!userId) {
+            userId = crypto.randomUUID()  // Gera um UUID único para o usuário
+            localStorage.setItem('userId', userId)  // Armazena no localStorage
+        }
+    }, [])
+
     const usernameRef = useRef()
 
     const handleSubmit = async () => {
+
         const username = usernameRef.current.value
         if (!username.trim()) return
-        const socket = await io.connect('https://back-chat-8mup.onrender.com/')
+
+        const userId = localStorage.getItem('userId') // Pega o userId do localStorage
+        const socket = await io.connect('http://localhost:3001', {
+            query: { userId }  // Envia o userId ao conectar
+        })
+
         socket.emit('set_username', username)
+        localStorage.setItem('username', username)
         props.setSocket(socket)
         props.setChatVisibility(true)
     }
@@ -21,10 +52,20 @@ export default function Join(props) {
     }
 
     return (
-        <div>
-            <h1>Join</h1>
-            <input type="text" ref={usernameRef} onKeyDown={(e) => getEnterKey(e)} placeholder='Nome do usuário' />
-            <button onClick={() => handleSubmit()}>Entrar</button>
+        <div className='cadastro'>
+            <h1>Cadastro</h1>
+
+            <div className="input-group">
+                <input
+                    className="input-text"
+                    name="text" type="text"
+                    placeholder="Type here" autoComplete='off'
+                    ref={usernameRef} onKeyDown={(e) => getEnterKey(e)}
+                />
+                <label className="input-text-label" htmlFor="text">Nome do usuário</label>
+            </div>
+
+            <button className='register-button' onClick={() => handleSubmit()}>Entrar</button>
         </div>
     )
 }
