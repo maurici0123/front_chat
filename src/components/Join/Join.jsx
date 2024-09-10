@@ -10,7 +10,11 @@ export default function Join(props) {
 
         if (userId && username) {
             
+<<<<<<< HEAD
             const socket = io.connect('http://localhost:3001', {
+=======
+            const socket = io.connect('https://back-chat-8mup.onrender.com', {
+>>>>>>> 499637a358951496cbb1b36a2312fb8167bcb80f
                 query: { userId } // Passa o userId na query ao conectar ao servidor
             })
 
@@ -35,7 +39,11 @@ export default function Join(props) {
         if (!username.trim()) return
 
         const userId = localStorage.getItem('userId') // Pega o userId do localStorage
+<<<<<<< HEAD
         const socket = await io.connect('http://localhost:3001', {
+=======
+        const socket = await io.connect('https://back-chat-8mup.onrender.com', {
+>>>>>>> 499637a358951496cbb1b36a2312fb8167bcb80f
             query: { userId }  // Envia o userId ao conectar
         })
 
