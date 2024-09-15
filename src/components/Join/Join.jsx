@@ -11,7 +11,7 @@ export default function Join(props) {
         if (userId && username) {
             
             const socket = io.connect('https://back-chat-8mup.onrender.com', {
-                query: { userId } // Passa o userId na query ao conectar ao servidor
+                query: { userId } 
             })
 
             socket.emit('set_username', localStorage.getItem('username'))
@@ -22,8 +22,8 @@ export default function Join(props) {
         }
 
         if (!userId) {
-            userId = crypto.randomUUID()  // Gera um UUID único para o usuário
-            localStorage.setItem('userId', userId)  // Armazena no localStorage
+            userId = crypto.randomUUID()
+            localStorage.setItem('userId', userId)
         }
     }, [])
 
@@ -34,9 +34,9 @@ export default function Join(props) {
         const username = usernameRef.current.value
         if (!username.trim()) return
 
-        const userId = localStorage.getItem('userId') // Pega o userId do localStorage
+        const userId = localStorage.getItem('userId')
         const socket = await io.connect('https://back-chat-8mup.onrender.com', {
-            query: { userId }  // Envia o userId ao conectar
+            query: { userId }
         })
 
         socket.emit('set_username', username)

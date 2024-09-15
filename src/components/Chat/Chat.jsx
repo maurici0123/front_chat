@@ -1,7 +1,9 @@
 import './ChatStyle.css'
 import React, { useRef, useState, useEffect } from 'react'
-import { VscSend } from "react-icons/vsc"
+import { IoIosMore } from "react-icons/io";
 import { MdDelete } from "react-icons/md"
+import { GrPowerReset } from "react-icons/gr"
+import { VscSend } from "react-icons/vsc"
 
 export default function Chat(props) {
 
@@ -9,7 +11,8 @@ export default function Chat(props) {
     const messageRef = useRef()
     const [messageList, setMessageList] = useState([])
     const [heightSendInput, setHeightSendInput] = useState(40)
-    const [displayIcon, setDisplayIcon] = useState('none')
+    const [displayOption, setDisplayOption] = useState('none')
+    const [backgroundColor, setBackgroundColor] = useState('transparent')
     const userId = localStorage.getItem('userId')
 
     useEffect(() => {
@@ -17,11 +20,6 @@ export default function Chat(props) {
     }, [])
 
     useEffect(() => {
-        localStorage.getItem('messages') && setMessageList(JSON.parse(localStorage.getItem('messages')))
-    }, [])
-
-    useEffect(() => {
-
         props.socket.on('recive_message', data => {
 
             setMessageList(current => {
@@ -40,22 +38,52 @@ export default function Chat(props) {
         scrollDown()
     }, [messageList])
 
-    const clearDatas = () => {
-        localStorage.clear()
-        window.location.reload()
-    }
-    
     const clearInput = () => messageRef.current.value = ''
 
     const focusInput = () => messageRef.current.focus()
 
     const scrollDown = () => bottomRef.current.scrollIntoView()
 
+    const clearDatas = () => {
+        localStorage.clear()
+        window.location.reload()
+    }
+
+    const clearMessages = () => {
+        localStorage.setItem('messages',  JSON.stringify([]))
+        window.location.reload()
+    }
+
+    const handleSubmit = () => {
+        const message = messageRef.current.value
+        if (!message.trim()) return
+
+        props.socket.emit('message', message)
+        clearInput()
+        focusInput()
+        setHeightSendInput(40)
+    }
+
     const input_lines = () => {
         const textarea = messageRef.current
-        const lineCount = textarea.value.split('\n').length
-        if (lineCount < 8) {
-            setHeightSendInput(lineCount == 1 ? 40 : lineCount * 24 + 16)
+
+        const context = document.createElement('canvas').getContext('2d')
+        context.font = getComputedStyle(textarea).font
+
+        const lines = textarea.value.split('\n')
+        let totalLines = 0
+
+        lines.forEach(line => {
+            const lineWidth = context.measureText(line).width
+            const estimatedLines = Math.ceil(lineWidth / (textarea.clientWidth - 40))
+            totalLines += estimatedLines || 1
+        })
+
+        if (totalLines <= 12) {
+            const newHeight = totalLines == 1 ? 40 : totalLines * 21 + 16;
+            setHeightSendInput(newHeight)
+        } else {
+            setHeightSendInput(12 * 21 + 16)
         }
     }
 
@@ -75,6 +103,7 @@ export default function Chat(props) {
             e.preventDefault()
         }
     }
+
     const isLastTwoMessagesSameAuthor = (index) => {
         if (index > 0) {
             return messageList[index].authorId === messageList[index - 1].authorId
@@ -82,23 +111,20 @@ export default function Chat(props) {
         return false
     }
 
-    const handleSubmit = () => {
-        const message = messageRef.current.value
-        if (!message.trim()) return
-
-        props.socket.emit('message', message)
-        clearInput()
-        focusInput()
-        setHeightSendInput(40)
+    const showOption = () => {
+        setDisplayOption(prev => {
+            if (prev == 'none') {
+                setBackgroundColor('#666')
+                return 'flex'
+            } else {
+                setBackgroundColor('transparent')
+                return 'none'
+            }
+        })
     }
 
     return (
         <div className='chat'>
-
-            <button className='delete-button' title='apagar todos os dados' onClick={() => clearDatas()}>
-                <MdDelete className='delete-icon' />
-            </button>
-
             <div className='chat-area'>
                 <div className='conversation'>
                     {
@@ -112,7 +138,7 @@ export default function Chat(props) {
                                         ${isLastTwoMessagesSameAuthor(index) && 'author-pasted'}`}>{message.author}
                                     </p>
 
-                                    <span>{message.text}</span>
+                                    <p className='value'>{message.text}</p>
 
                                     <p className='time'>{message.time}</p>
                                 </div>
@@ -123,9 +149,21 @@ export default function Chat(props) {
                 </div>
 
                 <div className='input-area'>
-                    <textarea type="text" style={{ height: `${heightSendInput}px` }}
-                        className='send-input' ref={messageRef} placeholder='Mensagem'
-                        onKeyDown={e => getEnterKey(e)} onChange={input_lines} />
+                    <div className='displayOption' style={{ display: displayOption }}>
+                    <div className='delete-button' onClick={() => clearMessages()}>
+                            <MdDelete className='delete-icon' />
+                            <span>Deletar as mensagens</span>
+                        </div>
+                        <div className='delete-button' onClick={() => clearDatas()}>
+                            <GrPowerReset className='delete-icon' />
+                            <span>Deletar os dados</span>
+                        </div>
+                    </div>
+
+                    <IoIosMore className='option-icon' style={{ backgroundColor: backgroundColor }} onClick={() => showOption()} />
+
+                    <textarea type="text" cols={40} style={{ height: `${heightSendInput}px` }} className='send-input' ref={messageRef} placeholder='Mensagem' onKeyDown={e => getEnterKey(e)} onChange={input_lines} />
+
                     <button className='send-button' onClick={() => handleSubmit()}><VscSend className='send-icon' /></button>
                 </div>
             </div>
