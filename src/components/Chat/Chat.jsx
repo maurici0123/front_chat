@@ -1,16 +1,17 @@
 import './ChatStyle.css'
 import React, { useRef, useState, useEffect } from 'react'
-import { IoIosMore } from "react-icons/io";
+import { IoIosMore } from "react-icons/io"
+import { FaImage } from "react-icons/fa6"
 import { MdDelete } from "react-icons/md"
 import { GrPowerReset } from "react-icons/gr"
 import { VscSend } from "react-icons/vsc"
 
 export default function Chat(props) {
-
     const bottomRef = useRef()
     const messageRef = useRef()
+    const fileInputRef = useRef()
     const [messageList, setMessageList] = useState([])
-    const [heightSendInput, setHeightSendInput] = useState(40)
+    const [heightSendInput, setHeightSendInput] = useState(35)
     const [displayOption, setDisplayOption] = useState('none')
     const [backgroundColor, setBackgroundColor] = useState('transparent')
     const userId = localStorage.getItem('userId')
@@ -38,11 +39,13 @@ export default function Chat(props) {
         scrollDown()
     }, [messageList])
 
-    const clearInput = () => messageRef.current.value = ''
+    const clearInput = () => messageRef.current.innerText = ""
 
     const focusInput = () => messageRef.current.focus()
 
     const scrollDown = () => bottomRef.current.scrollIntoView()
+
+    const imagens = () => fileInputRef.current.click()
 
     const clearDatas = () => {
         localStorage.clear()
@@ -50,58 +53,72 @@ export default function Chat(props) {
     }
 
     const clearMessages = () => {
-        localStorage.setItem('messages',  JSON.stringify([]))
+        localStorage.setItem('messages', JSON.stringify([]))
         window.location.reload()
     }
 
-    const handleSubmit = () => {
-        const message = messageRef.current.value
-        if (!message.trim()) return
+    const handleFileChange = (event) => {
+        const file = event.target.files[0]
 
-        props.socket.emit('message', message)
-        clearInput()
-        focusInput()
-        setHeightSendInput(40)
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            const base64Data = e.target.result
+
+            props.socket.emit('message', [base64Data, 'imageLocal'])
+        }
+
+        reader.readAsDataURL(file)
+        showOption()
     }
 
-    const input_lines = () => {
-        const textarea = messageRef.current
+    const imageLocal = (file) => {
+        return <img src={file} alt="image" className='valueImage' />
+    }
 
-        const context = document.createElement('canvas').getContext('2d')
-        context.font = getComputedStyle(textarea).font
+    // const file = event.target.files[0]
+    // console.log(file)
+    // if (file) {
+    //     const blobURL = URL.createObjectURL(file)
+    //     console.log(blobURL)
+    //     props.socket.emit('message', [blobURL, 'imageLocal'])
+    // }
 
-        const lines = textarea.value.split('\n')
-        let totalLines = 0
+    const isItImage = () => {
+        const div = messageRef.current
 
-        lines.forEach(line => {
-            const lineWidth = context.measureText(line).width
-            const estimatedLines = Math.ceil(lineWidth / (textarea.clientWidth - 40))
-            totalLines += estimatedLines || 1
-        })
-
-        if (totalLines <= 12) {
-            const newHeight = totalLines == 1 ? 40 : totalLines * 21 + 16;
-            setHeightSendInput(newHeight)
+        if (div.querySelector('img')) {
+            const img = div.querySelector('img')
+            return [img.getAttribute('src'), 'imageURL']
         } else {
-            setHeightSendInput(12 * 21 + 16)
+            return [div.innerText, 'message']
         }
+    }
+
+    const handleSubmit = () => {
+        const content = isItImage() || ""
+        if (!content[0].trim()) return
+
+        props.socket.emit('message', content)
+        clearInput()
+        focusInput()
+        setHeightSendInput(35)
+
+        showOption('none')
+        setBackgroundColor('transparent')
     }
 
     const getEnterKey = (e) => {
         if (e.code === 'Enter') {
             if (e.shiftKey || e.ctrlKey) {
-                const textarea = messageRef.current
-                const start = textarea.selectionStart
-                const end = textarea.selectionEnd
-                textarea.value = `${textarea.value.substring(0, start)}\n${textarea.value.substring(end)}`
-                textarea.selectionStart = textarea.selectionEnd = start + 1
-
-                input_lines()
+                return
             } else {
                 handleSubmit()
+                e.preventDefault()
             }
-            e.preventDefault()
         }
+
+        showOption('none')
+        setBackgroundColor('transparent')
     }
 
     const isLastTwoMessagesSameAuthor = (index) => {
@@ -111,16 +128,55 @@ export default function Chat(props) {
         return false
     }
 
-    const showOption = () => {
-        setDisplayOption(prev => {
-            if (prev == 'none') {
-                setBackgroundColor('#666')
-                return 'flex'
-            } else {
-                setBackgroundColor('transparent')
-                return 'none'
-            }
-        })
+    const showOption = (e = '') => {
+        if (e == 'none') {
+            setDisplayOption('none')
+        } else if (e == '') {
+            setDisplayOption(prev => {
+                if (prev == 'none') {
+                    setBackgroundColor('#666')
+                    return 'flex'
+                } else {
+                    setBackgroundColor('transparent')
+                    return 'none'
+                }
+            })
+        }
+    }
+
+    function textOrImage(message, index) {
+
+        if (message.type == 'message') {
+            return (
+                <div className={`messageText ${message.authorId === userId ? 'my-message' : 'other-message'}`}>
+                    <p className={`author ${message.authorId === userId ? 'my-author' : 'other-author'}
+                    ${isLastTwoMessagesSameAuthor(index) && 'author-pasted'}`}>{message.author}</p>
+
+                    <p className='valueText'>{message.text}</p>
+
+                    <p className='timeText'>{message.time}</p>
+                </div>)
+        } else if (message.type == 'imageURL') {
+            return (
+                <div className={`messageImage ${message.authorId === userId ? 'my-message' : 'other-message'}`}>
+                    <p className={`author ${message.authorId === userId ? 'my-author' : 'other-author'}
+                    ${isLastTwoMessagesSameAuthor(index) && 'author-pasted'}`}>{message.author}</p>
+
+                    <img src={message.text} alt="image" className='valueImage' />
+
+                    <p className='timeImage'>{message.time}</p>
+                </div>)
+        } else if (message.type == 'imageLocal') {
+            return (
+                <div className={`messageImage ${message.authorId === userId ? 'my-message' : 'other-message'}`}>
+                    <p className={`author ${message.authorId === userId ? 'my-author' : 'other-author'}
+                    ${isLastTwoMessagesSameAuthor(index) && 'author-pasted'}`}>{message.author}</p>
+
+                    {imageLocal(message.text)}
+
+                    <p className='timeImage'>{message.time}</p>
+                </div>)
+        }
     }
 
     return (
@@ -133,15 +189,7 @@ export default function Chat(props) {
                                 ${message.authorId === userId ? 'my-message-area' : 'other-message-area'}
                                 ${isLastTwoMessagesSameAuthor(index) && 'pasted-message'}`}>
 
-                                <div className={`message ${message.authorId === userId ? 'my-message' : 'other-message'}`}>
-                                    <p className={`author ${message.authorId === userId ? 'my-author' : 'other-author'}
-                                        ${isLastTwoMessagesSameAuthor(index) && 'author-pasted'}`}>{message.author}
-                                    </p>
-
-                                    <p className='value'>{message.text}</p>
-
-                                    <p className='time'>{message.time}</p>
-                                </div>
+                                {textOrImage(message, index)}
                             </div>
                         ))
                     }
@@ -150,19 +198,36 @@ export default function Chat(props) {
 
                 <div className='input-area'>
                     <div className='displayOption' style={{ display: displayOption }}>
-                    <div className='delete-button' onClick={() => clearMessages()}>
-                            <MdDelete className='delete-icon' />
-                            <span>Deletar as mensagens</span>
+                        <div className='more-button' onClick={() => imagens()}>
+                            <FaImage className='more-icon' />
+                            <span>Imagens</span>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                style={{ display: 'none' }}
+                                onChange={evt => handleFileChange(evt)}
+                            />
                         </div>
-                        <div className='delete-button' onClick={() => clearDatas()}>
-                            <GrPowerReset className='delete-icon' />
-                            <span>Deletar os dados</span>
+                        <div className='more-button' onClick={() => clearMessages()}>
+                            <MdDelete className='more-icon' />
+                            <span>Deletar mensagens</span>
+                        </div>
+                        <div className='more-button' onClick={() => clearDatas()}>
+                            <GrPowerReset className='more-icon' />
+                            <span>Deletar dados</span>
                         </div>
                     </div>
 
                     <IoIosMore className='option-icon' style={{ backgroundColor: backgroundColor }} onClick={() => showOption()} />
 
-                    <textarea type="text" cols={40} style={{ height: `${heightSendInput}px` }} className='send-input' ref={messageRef} placeholder='Mensagem' onKeyDown={e => getEnterKey(e)} onChange={input_lines} />
+                    <div
+                        contentEditable='true'
+                        style={{ 'minHeight': `${heightSendInput}px` }}
+                        className='send-input'
+                        ref={messageRef}
+                        placeholder='Mensagem'
+                        onKeyDown={e => getEnterKey(e)}
+                    />
 
                     <button className='send-button' onClick={() => handleSubmit()}><VscSend className='send-icon' /></button>
                 </div>

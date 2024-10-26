@@ -9,20 +9,17 @@ export default function Join(props) {
         let username = localStorage.getItem('username') 
 
         if (userId && username) {
-            
             const socket = io.connect('https://back-chat-8mup.onrender.com', {
-                query: { userId } 
+                query: { userId }
             })
 
             socket.emit('set_username', localStorage.getItem('username'))
             props.setSocket(socket)
             props.setChatVisibility(true)
-
-            socket.emit('set_username', username)
         }
 
         if (!userId) {
-            userId = crypto.randomUUID()
+            userId = crypto.randomUUID()  
             localStorage.setItem('userId', userId)
         }
     }, [])
@@ -34,9 +31,9 @@ export default function Join(props) {
         const username = usernameRef.current.value
         if (!username.trim()) return
 
-        const userId = localStorage.getItem('userId')
+        const userId = localStorage.getItem('userId') 
         const socket = await io.connect('https://back-chat-8mup.onrender.com', {
-            query: { userId }
+            query: { userId }  
         })
 
         socket.emit('set_username', username)
