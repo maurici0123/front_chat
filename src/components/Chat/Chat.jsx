@@ -154,7 +154,7 @@ export default function Chat(props) {
 
                     <p className='valueText'>{message.text}</p>
 
-                    <p className='timeText'>{message.time[0]}</p>
+                    <p className='timeText'>{message.time}</p>
                 </div>)
         } else if (message.type == 'imageURL') {
             return (
@@ -164,7 +164,7 @@ export default function Chat(props) {
 
                     <img src={message.text} alt="image" className='valueImage' />
 
-                    <p className='timeImage'>{message.time[0]}</p>
+                    <p className='timeImage'>{message.time}</p>
                 </div>)
         } else if (message.type == 'imageLocal') {
             return (
@@ -174,7 +174,7 @@ export default function Chat(props) {
 
                     <img src={message.text} alt="image" className='valueImage' />
 
-                    <p className='timeImage'>{message.time[0]}</p>
+                    <p className='timeImage'>{message.time}</p>
                 </div>)
         }
     }
