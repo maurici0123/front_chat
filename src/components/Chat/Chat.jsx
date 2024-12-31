@@ -154,7 +154,7 @@ export default function Chat(props) {
 
                     <p className='valueText'>{message.text}</p>
 
-                    <p className='timeText'>{message.time[0]}</p>
+                    <p className='timeText'>{message.time}</p>
                 </div>)
         } else if (message.type == 'imageURL') {
             return (
